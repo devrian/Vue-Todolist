@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>Vue To Do</title>
+    <style>
+        .completed{
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-6">
+                <br><br><br>
+                <div id="app">
+                    <h1 class="text-center">Vue Todo List</h1>
+                    <hr>
+                    <ul class="list-group list-group-flush">
+                        <input class="form-control" type="text" v-model="newTodo" v-on:keyup.enter="addTodo" placeholder="Enter text here">
+                        <li v-if="!todos.length" class="list-group-item">
+                            Nothing to do
+                        </li>
+                        <li v-for="todo in todos" class="list-group-item">
+                            <span v-bind:class="{'completed' : (typeof todo.done === 'string') ? parseInt(todo.done) : todo.done}">{{ todo.text }}</span>
+
+                            <button v-on:click="removeTodo(index, todo.id_date)" class="btn btn-danger btn-sm pull-right"> 
+                                <i class="fa fa-trash"></i> 
+                            </button>
+
+                            <button v-on:click="toggleC(todo)" class="btn btn-secondary btn-sm pull-right"> 
+                                <i class="fa fa-check"></i>
+                            </button>
+                        </li>
+                    </ul>    
+                </div>
+            </div>
+        </div>
+    </div>
+  
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/1.0.25/vue.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/0.9.0/vue-resource.min.js"></script>
+    <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script> -->
+    <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.bundle.min.js"></script> -->
+    <script>
+        new Vue({
+            el: "#app",
+            data: {
+                newTodo: "",
+                todos: [],
+                done: false,
+            },
+            methods: {
+                addTodo: function()
+                {
+                    var newItem = this.newTodo.trim()
+                    if (newItem) {
+                        this.todos.push({
+                            text: this.newTodo,
+                            done: false,
+                        })
+                        this.newTodo = "";
+                        // localStorage.setItem('lists', JSON.stringify(this.todos)) --for using localStorage
+                    }
+
+                    this.$http({
+                        url: "api/index.php",
+                        method: "POST",
+                        body: {
+                            text: newItem,
+                            done: false,
+                            date: Date.now()
+                        }
+                    }).then((response) => {
+                        console.log(response)
+                    });
+                },
+                removeTodo: function(index, id_date)
+                {
+                    this.todos.splice(index, 1) 
+                    this.$http({
+                        url: "api/index.php?id=" + id_date,
+                        method: "DELETE",
+                    }).then((response) => {
+                        console.log(response)
+                    })
+                    // localStorage.setItem('lists', JSON.stringify(this.todos)) --for using localStorage
+                },
+                toggleC: function(todo)
+                {
+                    (todo.done == 0) ? todo.done = false : true
+                    todo.done = !todo.done
+
+                    this.$http({
+                        url: "api/index.php?id=" + todo.id_date + '&done=' + todo.done,
+                        method: "PATCH",
+                    }).then((response) => {
+                        console.log(response)
+                    })
+                }
+            },
+            ready: function()
+            {
+                // this.todos = JSON.parse(localStorage.getItem('lists')) || [] --for using localStorage
+                this.$http({
+                    url: "api/index.php",
+                    method: "GET",
+                }).then((response) => {
+                    this.todos = JSON.parse(response.data) //Add JSON.parse() if use ver Vue 0.9
+                });
+            }
+        });
+
+        Vue.http.options.emulateJSON = true;
+    </script>
+</body>
+</html>
